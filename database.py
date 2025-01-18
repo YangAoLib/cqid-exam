@@ -307,23 +307,37 @@ class Database:
         conn = self.get_db()
         cursor = conn.cursor()
         
-        # 尝试获取用户
+        # 检查用户名是否是超级管理员用户名
+        if username == self.config.SUPERADMIN_USERNAME:
+            cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+            user = cursor.fetchone()
+            if user:
+                return {
+                    'id': user[0],
+                    'username': user[1],
+                    'role': user[2],
+                    'created_at': user[3]
+                }
+            else:
+                self.logger.warning(f"尝试使用超级管理员用户名 {username} 创建普通用户")
+                return None
+        
+        # 非超级管理员用户名，获取或创建用户
+        cursor.execute('''
+            INSERT OR IGNORE INTO users (username, role) 
+            VALUES (?, 'user')
+        ''', (username,))
+        conn.commit()
+        
         cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
         user = cursor.fetchone()
         
-        if not user:
-            # 创建新用户
-            cursor.execute('INSERT INTO users (username) VALUES (?)', (username,))
-            conn.commit()
-            user_id = cursor.lastrowid
-            
-            # 创建用户进度记录
-            cursor.execute('INSERT INTO user_progress (user_id) VALUES (?)', (user_id,))
-            conn.commit()
-            
-            return {'id': user_id, 'username': username, 'role': 'user'}
-        
-        return {'id': user[0], 'username': user[1], 'role': user[2]}
+        return {
+            'id': user[0],
+            'username': user[1],
+            'role': user[2],
+            'created_at': user[3]
+        }
 
     def get_user_progress(self, user_id):
         """获取用户进度"""

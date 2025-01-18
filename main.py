@@ -8,8 +8,7 @@ from config import config
 from functools import wraps
 
 # 根据环境变量选择配置
-config_name = os.getenv('FLASK_ENV', 'development')
-config_instance = config[config_name]
+config_instance = config
 
 app = Flask(__name__)
 app.config.from_object(config_instance)
@@ -267,6 +266,10 @@ def login():
         username = request.form.get('username')
         if username:
             user = db.get_or_create_user(username)
+            if user is None:
+                flash('用户名不可用', 'danger')
+                return redirect(url_for('login'))
+                
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['role'] = user['role']
