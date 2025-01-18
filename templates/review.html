@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">错题复习</h2>
+    
+    {% if wrong_questions %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>题号</th>
+                        <th>题目</th>
+                        <th>答案</th>
+                        <th>错误次数</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for question in wrong_questions %}
+                    <tr>
+                        <td>{{ question.number }}</td>
+                        <td>
+                            {{ question.title }}
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    {% for option in question.options %}
+                                        {{ loop.index }}. {{ option }}<br>
+                                    {% endfor %}
+                                </small>
+                            </div>
+                        </td>
+                        <td class="text-success">{{ question.answer }}</td>
+                        <td class="text-danger">{{ question.wrong_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            目前没有错题记录。
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="questions-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>题库</h2>
+        {% if is_admin %}
+            <a href="{{ url_for('update') }}" class="btn btn-primary">更新题库</a>
+        {% endif %}
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if questions %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th style="width: 100px">题号</th>
+                        <th>题目</th>
+                        <th style="width: 420px">答案</th>
+                        <th>选项</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for question in questions %}
+                    <tr>
+                        <td class="text-center">{{ question.number }}</td>
+                        <td>{{ question.title }}</td>
+                        <td class="text-success text-center">{{ question.answer }}</td>
+                        <td>
+                            <ul class="list-unstyled mb-0">
+                                {% for option in question.options %}
+                                <li>{{ loop.index }}. {{ option }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页导航 -->
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if current_page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('view_questions', page=current_page-1) }}">上一页</a>
+                </li>
+                {% endif %}
+
+                {% set start_page = [current_page - 2, 1] | max %}
+                {% set end_page = [current_page + 2, total_pages] | min %}
+                
+                {% for p in range(start_page, end_page + 1) %}
+                <li class="page-item {% if p == current_page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('view_questions', page=p) }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+
+                {% if current_page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('view_questions', page=current_page+1) }}">下一页</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% else %}
+        <div class="alert alert-info">
+            {% if is_admin %}
+                题库中还没有题目，请点击右上角"更新题库"按钮添加题目。
+            {% else %}
+                题库中还没有题目，请联系管理员维护题目。
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

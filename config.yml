@@ -1,0 +1,59 @@
+# 基础配置
+base:
+  secret_key: 'your-secret-key'
+
+# 日志配置
+logging:
+  level: INFO  # 日志级别：DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  file: 'app.log'  # 日志文件名
+  directory: 'logs'  # 日志目录
+
+# 爬虫配置
+scraper:
+  base_url: "https://www.cqid.cn/all/"
+  question_type: "A"  # 题目类型：A/B/C
+  headers:
+    User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+    Accept-Language: "zh-CN,zh;q=0.9,en;q=0.8"
+    Accept-Encoding: "gzip, deflate, br"
+    Connection: "keep-alive"
+    Upgrade-Insecure-Requests: "1"
+  request_timeout: 10
+  delay: 2
+
+# 题库配置
+questions:
+  per_page: 50
+  auto_next_delay: 2  # 答对后自动跳转延迟（秒）
+
+# 缓存配置
+cache:
+  enabled: true
+  expire_days: 0  # 0或-1表示永不过期，正数表示过期天数
+
+# 数据库配置
+database:
+  clear_on_startup: false  # 是否在启动时清空数据
+
+# 环境特定配置
+environments:
+  development:
+    debug: true
+    use_cache: true
+    confirm_update: false
+    clear_database: true  # 开发环境默认清空数据
+  
+  production:
+    debug: false
+    use_cache: false
+    confirm_update: true
+    secret_key: ${SECRET_KEY:-production-secret-key}
+    clear_database: false  # 生产环境默认不清空数据
+  
+  testing:
+    testing: true
+    use_cache: false
+    database: test_questions.db
+    clear_database: true  # 测试环境默认清空数据 

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="alert alert-warning">
+        <h4 class="alert-heading">确认更新题库？</h4>
+        <p>您正在尝试更新题库。此操作将从网站获取最新题目，可能需要一些时间。</p>
+        <hr>
+        <p class="mb-0">
+            <a href="{{ url_for('update', confirmed=1) }}" class="btn btn-warning">确认更新</a>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">取消</a>
+        </p>
+    </div>
+</div>
+{% endblock %} 

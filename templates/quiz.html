@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="quiz-container">
+    <h2 class="mb-4">答题练习</h2>
+    
+    {% if question %}
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title mb-0">第 {{ current_number }} 题</h5>
+                <button class="btn btn-outline-secondary btn-sm" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#resetProgressModal">
+                    重置进度
+                </button>
+            </div>
+            <p class="card-text">{{ question.title }}</p>
+            
+            <div id="options-container">
+                {% for option in question.options %}
+                <div class="option mb-2" 
+                     data-question-id="{{ question.id }}"
+                     data-answer-index="{{ loop.index0 }}"
+                     data-current-number="{{ current_number }}"
+                     onclick="submitAnswer(this)">
+                    <label class="w-100 p-2">
+                        {{ loop.index }}. {{ option }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div id="result-container" class="mt-3" style="display: none;">
+                <div id="correct-alert" class="alert alert-success" style="display: none;">
+                    <p>回答正确！</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span id="auto-next-countdown"></span>
+                        </div>
+                        <div>
+                            <button class="btn btn-success btn-sm" onclick="cancelAutoNext()">暂不跳转</button>
+                            <button class="btn btn-primary btn-sm" onclick="goToNext()">下一题</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="wrong-alert" class="alert alert-danger" style="display: none;">
+                    <p>回答错误。正确答案是：<span id="correct-answer"></span></p>
+                    <button class="btn btn-primary btn-sm" onclick="goToNext()">下一题</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        当前没有可用的题目，请先更新题库。
+        <a href="/update" class="btn btn-primary">更新题库</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="modal fade" id="resetProgressModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">重置答题进度</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('reset_progress') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="question_number" class="form-label">请输入要跳转的题号</label>
+                        <input type="number" class="form-control" id="question_number" 
+                               name="question_number" min="1" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">确认重置</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let autoNextTimer = null;
+let isSubmitting = false;  // 防止重复提交
+
+function goToNext() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const nextNumber = urlParams.get('next_number');
+    if (nextNumber) {
+        window.location.href = `/quiz?page=${nextNumber}`;
+    } else {
+        window.location.href = '/quiz';
+    }
+}
+
+function submitAnswer(element) {
+    if (isSubmitting) return;  // 如果正在提交，则忽略点击
+    isSubmitting = true;
+
+    const questionId = element.dataset.questionId;
+    const answerIndex = parseInt(element.dataset.answerIndex);
+    const currentNumber = parseInt(element.dataset.currentNumber);
+
+    // 禁用所有选项
+    const options = document.querySelectorAll('.option');
+    options.forEach(option => {
+        option.style.pointerEvents = 'none';
+        option.style.opacity = '0.7';
+    });
+
+    fetch('/submit_answer', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            question_id: questionId,
+            answer_index: answerIndex,
+            current_number: currentNumber
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const resultContainer = document.getElementById('result-container');
+        const correctAlert = document.getElementById('correct-alert');
+        const wrongAlert = document.getElementById('wrong-alert');
+        const correctAnswer = document.getElementById('correct-answer');
+        
+        resultContainer.style.display = 'block';
+        
+        // 设置下一题的URL参数
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('next_number', data.next_number);
+        window.history.replaceState({}, '', `${window.location.pathname}?${urlParams}`);
+        
+        if (data.correct) {
+            correctAlert.style.display = 'block';
+            wrongAlert.style.display = 'none';
+            
+            // 设置自动跳转
+            let countdown = data.auto_next_delay;
+            const countdownElement = document.getElementById('auto-next-countdown');
+            
+            if (autoNextTimer) {
+                clearInterval(autoNextTimer);
+            }
+            
+            autoNextTimer = setInterval(() => {
+                countdown--;
+                countdownElement.textContent = `${countdown}秒后自动跳转到下一题...`;
+                
+                if (countdown <= 0) {
+                    clearInterval(autoNextTimer);
+                    goToNext();
+                }
+            }, 1000);
+            
+        } else {
+            correctAlert.style.display = 'none';
+            wrongAlert.style.display = 'block';
+            correctAnswer.textContent = data.answer;
+        }
+    })
+    .catch(error => {
+        console.error('提交答案错误:', error);
+        alert('提交答案失败，请刷新页面重试');
+        // 恢复选项可点击状态
+        options.forEach(option => {
+            option.style.pointerEvents = 'auto';
+            option.style.opacity = '1';
+        });
+    })
+    .finally(() => {
+        isSubmitting = false;  // 重置提交状态
+    });
+}
+
+function cancelAutoNext() {
+    if (autoNextTimer) {
+        clearInterval(autoNextTimer);
+        document.getElementById('auto-next-countdown').textContent = '自动跳转已取消';
+    }
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    if (autoNextTimer) {
+        clearInterval(autoNextTimer);
+    }
+});
+</script>
+
+<style>
+.option {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.option:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.option label {
+    cursor: pointer;
+    margin: 0;
+}
+
+.option.disabled {
+    pointer-events: none;
+    opacity: 0.7;
+}
+</style>
+{% endblock %} 

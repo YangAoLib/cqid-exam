@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">用户管理</h2>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>用户名</th>
+                    <th>角色</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.role }}</td>
+                    <td>
+                        {% if user.role != 'superadmin' %}
+                        <form action="{{ url_for('set_role') }}" method="POST" class="d-inline">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                            <input type="hidden" name="role" value="{{ 'user' if user.role == 'admin' else 'admin' }}">
+                            <button type="submit" class="btn btn-sm btn-{{ 'warning' if user.role == 'admin' else 'success' }}">
+                                {{ '取消管理员' if user.role == 'admin' else '设为管理员' }}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 
