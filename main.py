@@ -15,7 +15,7 @@ app = Flask(__name__)
 app.config.from_object(config_instance)
 config_instance.init_app(app)
 
-app.secret_key = 'your-secret-key'
+app.secret_key = config_instance.SECRET_KEY
 
 db = Database(config_instance)
 scraper = QuestionScraper(config_instance)
@@ -341,4 +341,11 @@ def set_role():
     return redirect(url_for('manage_users'))
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    # 从环境变量获取主机和端口
+    host = os.getenv('HOST', '0.0.0.0')
+    port = int(os.getenv('PORT', 5000))
+    
+    # 根据环境变量配置决定是否开启调试模式
+    debug = config_instance.DEBUG
+    
+    app.run(host=host, port=port, debug=debug) 
