@@ -113,8 +113,11 @@ class TestingConfig(Config):
             config = yaml.safe_load(f)
         env_config = config['environments'][env]
         
-        self.TESTING = env_config['testing']
-        self.DATABASE_FILE = os.path.join(self.BASE_DIR, env_config['database'])
+        self.DEBUG = False
+        self.TESTING = True
+        self.USE_CACHE = env_config.get('use_cache', False)
+        self.DATABASE_FILE = os.path.join(self.BASE_DIR, env_config.get('database', 'test_questions.db'))
+        self.CLEAR_DATABASE = env_config.get('clear_database', True)
 
 config = {
     'development': DevelopmentConfig(),
