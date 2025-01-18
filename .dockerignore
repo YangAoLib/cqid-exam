@@ -1,0 +1,37 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 项目特定
+data/*
+!data/.gitkeep
+logs/*
+!logs/.gitkeep
+*.db
+*.log
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore 
