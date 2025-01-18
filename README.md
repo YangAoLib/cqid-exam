@@ -1,11 +1,11 @@
 # CQID 考试系统
 
-一个基于 Flask 的在线考试系统，专门用于驾考科目一练习。
+一个基于 Flask 的在线考试系统，专门用于业余无线电操作证考试（A/B/C）练习。系统自动从官方题库抓取最新题目，支持在线答题、错题重练、进度记录等功能。
 
 ## 功能特点
 
-- 🚀 自动抓取最新题库
-- 📝 在线答题练习
+- 🚀 自动抓取最新无线电考试题库
+- 📝 在线答题练习（支持 A/B/C 类）
 - 🔄 错题重练功能
 - 📊 答题进度记录
 - 🎯 针对性练习
@@ -24,7 +24,7 @@
 
 1. 克隆仓库
 ```bash
-git clone <repository-url>
+git clone git@github.com:YangAoLib/cqid-exam.git
 cd cqid-exam
 ```
 
@@ -44,9 +44,12 @@ pip install -r requirements.txt
 
 4. 配置系统
 ```bash
-# 复制配置文件模板
-cp config.yml.example config.yml
-# 编辑配置文件，设置必要的参数
+# 复制配置文件样例并根据需要修改
+cp config.example.yml config.yml
+# ⚠️ 特别注意：在生产环境中必须修改 secret_key 和 superadmin 用户名
+
+# 生成随机密钥（可选）
+python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
 5. 运行应用
@@ -63,7 +66,19 @@ python main.py
 ### 基础配置
 ```yaml
 base:
-  secret_key: 'your-secret-key'  # Flask 密钥
+  secret_key: 'your-secret-key'  # Flask 密钥，用于：
+                                # 1. 会话加密
+                                # 2. 保护表单免受 CSRF 攻击
+                                # 3. 用户会话安全
+                                # 建议使用随机字符串，在生产环境中必须修改
+```
+
+### 用户配置
+```yaml
+users:
+  superadmin: 'yangao'  # 超级管理员用户名
+                       # ⚠️ 安全警告：在生产环境中必须修改此用户名
+                       # 默认用户名仅用于开发环境，使用默认值可能导致安全风险
 ```
 
 ### 日志配置
