@@ -79,8 +79,8 @@ class Database:
         # 创建超级管理员
         cursor.execute('''
         INSERT OR IGNORE INTO users (username, role) 
-        VALUES ('yangao', 'superadmin')
-        ''')
+        VALUES (?, 'superadmin')
+        ''', (self.config.SUPERADMIN_USERNAME,))
         self.logger.debug("超级管理员账户创建完成")
         
         # 创建用户进度表

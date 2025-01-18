@@ -40,6 +40,10 @@ class Config:
         # 基础配置
         self.SECRET_KEY = config['base']['secret_key']
 
+        # 用户配置
+        users_config = config.get('users', {})
+        self.SUPERADMIN_USERNAME = users_config.get('superadmin', 'yangao')
+
         # 日志配置
         logging_config = config.get('logging', {})
         self.LOG_LEVEL = logging_config.get('level', 'INFO')
