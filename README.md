@@ -14,13 +14,33 @@
 
 ## 快速开始
 
-### 环境要求
+### 方式一：使用 Docker（推荐）
 
-- Python 3.8+
-- SQLite 3
-- pip
+1. 克隆仓库
+```bash
+git clone git@github.com:YangAoLib/cqid-exam.git
+cd cqid-exam
+```
 
-### 安装步骤
+2. 配置环境变量
+```bash
+# 生成随机密钥
+python -c "import secrets; print(secrets.token_hex(32))"
+
+# 将生成的密钥复制到 .env 文件的 SECRET_KEY 中
+# 根据需要修改其他配置
+```
+
+3. 使用 Docker Compose 启动服务
+```bash
+# 构建并启动
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f web
+```
+
+### 方式二：传统部署
 
 1. 克隆仓库
 ```bash
@@ -54,56 +74,70 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 5. 运行应用
 ```bash
+# 开发环境
 python main.py
-```
 
-访问 http://localhost:5000 开始使用。
+# 生产环境（推荐）
+pip install gunicorn  # Linux/Mac
+pip install waitress  # Windows
+
+# Linux/Mac
+gunicorn -w 4 -b 0.0.0.0:5000 main:app
+
+# Windows
+waitress-serve --host=0.0.0.0 --port=5000 main:app
+```
 
 ## 配置说明
 
-配置文件 `config.yml` 包含以下主要部分：
+### 环境变量配置（.env）
 
-### 基础配置
+生产环境的配置可以通过环境变量或 .env 文件设置：
+
+```bash
+# Flask应用配置
+FLASK_ENV=production
+SECRET_KEY=your-secure-secret-key
+PORT=5000
+
+# Gunicorn服务器配置
+WORKERS=4                # 建议设置为 CPU 核心数 * 2 + 1
+TIMEOUT=120             # 请求超时时间（秒）
+MAX_REQUESTS=1000       # 工作进程最大请求数
+
+# 日志配置
+LOG_LEVEL=INFO          # 可选：DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# 数据库配置
+CLEAR_DATABASE=false    # 生产环境禁止自动清空数据库
+
+# 题库配置
+QUESTIONS_PER_PAGE=50   # 每页显示题目数
+AUTO_NEXT_DELAY=2       # 答对后自动跳转延迟（秒）
+
+# 缓存配置
+CACHE_ENABLED=true      # 是否启用缓存
+CACHE_EXPIRE_DAYS=0     # 缓存过期天数，0表示永不过期
+```
+
+### 应用配置（config.yml）
+
+详细的应用配置在 `config.yml` 文件中：
+
 ```yaml
 base:
-  secret_key: 'your-secret-key'  # Flask 密钥，用于：
-                                # 1. 会话加密
-                                # 2. 保护表单免受 CSRF 攻击
-                                # 3. 用户会话安全
-                                # 建议使用随机字符串，在生产环境中必须修改
-```
+  secret_key: 'your-secret-key'  # Flask 密钥
 
-### 用户配置
-```yaml
 users:
-  superadmin: 'yangao'  # 超级管理员用户名
-                       # ⚠️ 安全警告：在生产环境中必须修改此用户名
-                       # 默认用户名仅用于开发环境，使用默认值可能导致安全风险
-```
+  superadmin: 'change-this-username'  # 超级管理员用户名
 
-### 日志配置
-```yaml
 logging:
-  level: INFO  # 日志级别：DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO  # 日志级别
   format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-  file: 'app.log'  # 日志文件名
-  directory: 'logs'  # 日志目录
-```
+  file: 'app.log'
+  directory: 'logs'
 
-### 爬虫配置
-```yaml
-scraper:
-  base_url: "https://www.cqid.cn/all/"
-  question_type: "A"  # 题目类型：A/B/C
-  request_timeout: 10
-  delay: 2
-```
-
-### 缓存配置
-```yaml
-cache:
-  enabled: true
-  expire_days: 0  # 0或-1表示永不过期
+# 更多配置请参考 config.example.yml
 ```
 
 ## 项目结构
@@ -122,6 +156,24 @@ cqid-exam/
 └── logs/            # 日志文件
 ```
 
+## 生产环境部署建议
+
+1. 安全配置
+- 修改 `SECRET_KEY` 为安全的随机字符串
+- 修改超级管理员用户名
+- 使用 HTTPS
+- 配置防火墙
+
+2. 性能优化
+- 调整 Gunicorn 工作进程数（WORKERS）
+- 启用缓存
+- 配置合适的日志级别
+
+3. 监控
+- 使用 Docker 的健康检查
+- 配置日志收集
+- 设置资源限制
+
 ## 开发说明
 
 ### 目录说明
@@ -134,9 +186,6 @@ cqid-exam/
 - `main.py`: Flask 应用主程序
 - `config.py`: 配置管理
 - `database.py`: 数据库操作
-- `scraper.py`: 题库爬虫
-- `quiz.py`: 答题功能
-- `review.py`: 复习功能
 
 ## 贡献指南
 
