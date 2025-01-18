@@ -4,6 +4,7 @@ import time
 import re
 import os
 import json
+import logging
 from datetime import datetime, timedelta
 
 class QuestionScraper:
@@ -14,6 +15,24 @@ class QuestionScraper:
         self.question_type = config.SCRAPER_QUESTION_TYPE
         self.total_questions = None
         self.questions_per_page = None
+        
+        # 配置日志
+        self.logger = logging.getLogger('scraper')
+        self.logger.setLevel(getattr(logging, config.LOG_LEVEL.upper()))
+        
+        # 创建日志处理器
+        log_file = os.path.join(config.LOG_DIR, 'scraper.log')
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        console_handler = logging.StreamHandler()
+        
+        # 设置日志格式
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+        
+        # 添加处理器
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
 
     def _get_cache_path(self, page):
         """获取缓存文件路径"""
@@ -40,7 +59,7 @@ class QuestionScraper:
             with open(cache_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
-            print(f"读取缓存失败: {str(e)}")
+            self.logger.error(f"读取缓存失败: {str(e)}")
             return None
 
     def _save_cache(self, page, data):
@@ -53,7 +72,7 @@ class QuestionScraper:
             with open(cache_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"保存缓存失败: {str(e)}")
+            self.logger.error(f"保存缓存失败: {str(e)}")
 
     def _get_total_info(self, soup):
         """从页面获取题目总数和每页题目数"""
@@ -71,9 +90,9 @@ class QuestionScraper:
                 cards = soup.find_all('div', class_='card', attrs={'data-num': True})
                 self.questions_per_page = len(cards)
                 
-                print(f"从页面获取信息：总题数={self.total_questions}, 每页题数={self.questions_per_page}")
+                self.logger.info(f"从页面获取信息：总题数={self.total_questions}, 每页题数={self.questions_per_page}")
             except Exception as e:
-                print(f"获取题目信息时出错: {str(e)}")
+                self.logger.error(f"获取题目信息时出错: {str(e)}")
                 # 设置默认值
                 self.total_questions = 0
                 self.questions_per_page = 10
@@ -83,7 +102,7 @@ class QuestionScraper:
         # 尝试从缓存加载
         cached_data = self._load_cache(page)
         if cached_data:
-            print(f"从缓存加载第{page}页的题目")
+            self.logger.info(f"从缓存加载第{page}页的题目")
             return cached_data
 
         params = {
@@ -91,6 +110,7 @@ class QuestionScraper:
             'page': page
         }
         try:
+            self.logger.info(f"开始爬取第{page}页题目")
             response = requests.get(
                 self.base_url, 
                 params=params, 
@@ -134,12 +154,13 @@ class QuestionScraper:
                             'options': options,
                             'answer': answer
                         })
+                        self.logger.debug(f"成功解析题目 {question_number}")
                 
                 except Exception as e:
-                    print(f"解析题目时出错: {str(e)}")
+                    self.logger.error(f"解析题目时出错: {str(e)}")
                     continue
             
-            print(f"成功获取第{page}页的 {len(questions)} 道题目")
+            self.logger.info(f"成功获取第{page}页的 {len(questions)} 道题目")
             
             # 保存到缓存
             if questions:
@@ -148,22 +169,24 @@ class QuestionScraper:
             return questions
             
         except requests.RequestException as e:
-            print(f"请求失败: {str(e)}")
+            self.logger.error(f"请求失败: {str(e)}")
             return []
         except Exception as e:
-            print(f"爬取失败: {str(e)}")
+            self.logger.error(f"爬取失败: {str(e)}")
             return []
         finally:
             time.sleep(self.config.SCRAPER_DELAY)
 
     def get_all_questions(self):
         """获取所有题目"""
+        self.logger.info("开始获取所有题目")
         all_questions = []
         page = 1
         
         # 先获取第一页来确定总页数
         questions = self.get_questions(page)
         if not questions:
+            self.logger.error("获取第一页失败，终止爬取")
             return []
             
         all_questions.extend(questions)
@@ -172,21 +195,23 @@ class QuestionScraper:
         # 计算总页数
         if self.total_questions and self.questions_per_page:
             total_pages = (self.total_questions + self.questions_per_page - 1) // self.questions_per_page
+            self.logger.info(f"总页数：{total_pages}")
             
             while page <= total_pages:
                 questions = self.get_questions(page)
                 if not questions:
+                    self.logger.warning(f"获取第{page}页失败，提前终止爬取")
                     break
                 all_questions.extend(questions)
                 page += 1
         
-        print(f"总共获取 {len(all_questions)} 道题目")
+        self.logger.info(f"爬取完成，总共获取 {len(all_questions)} 道题目")
         return all_questions
 
     def debug_html(self, html_content):
         """用于调试的方法，打印HTML结构"""
-        print("HTML内容预览:")
-        print(html_content[:1000])  # 打印前1000个字符
+        self.logger.debug("HTML内容预览:")
+        self.logger.debug(html_content[:1000])  # 打印前1000个字符
         soup = BeautifulSoup(html_content, 'html.parser')
-        print("\n页面结构:")
-        print(soup.prettify()[:1000])  # 打印格式化后的前1000个字符 
+        self.logger.debug("\n页面结构:")
+        self.logger.debug(soup.prettify()[:1000])  # 打印格式化后的前1000个字符 

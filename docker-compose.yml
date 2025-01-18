@@ -8,33 +8,55 @@ services:
     ports:
       - "${PORT:-5000}:5000"
     environment:
-      - FLASK_ENV=${FLASK_ENV:-production}
-      - SECRET_KEY=${SECRET_KEY:-production-secret-key}
+      # 环境配置
+      - ENV=${ENV:-production}
+      
+      # 安全配置
+      - SECRET_KEY=${SECRET_KEY:-change-this-to-your-secure-secret-key}
+      
+      # 超级管理员配置
+      - SUPERADMIN_USERNAME=${SUPERADMIN_USERNAME:-admin}
+      
+      # 日志配置
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_DIR=${LOG_DIR:-logs}
+      - LOG_FILE=${LOG_FILE:-app.log}
+      - LOG_FORMAT=${LOG_FORMAT:-%(asctime)s - %(name)s - %(levelname)s - %(message)s}
+      
+      # 爬虫配置
+      - SCRAPER_BASE_URL=${SCRAPER_BASE_URL:-https://www.cqid.cn/all/}
+      - SCRAPER_REQUEST_TIMEOUT=${SCRAPER_REQUEST_TIMEOUT:-10}
+      - SCRAPER_DELAY=${SCRAPER_DELAY:-2}
+      - SCRAPER_QUESTION_TYPE=${SCRAPER_QUESTION_TYPE:-A}
+      
+      # 题库配置
+      - QUESTIONS_PER_PAGE=${QUESTIONS_PER_PAGE:-50}
+      - AUTO_NEXT_DELAY=${AUTO_NEXT_DELAY:-2}
+      
+      # 缓存配置
+      - CACHE_ENABLED=${CACHE_ENABLED:-true}
+      - CACHE_EXPIRE_DAYS=${CACHE_EXPIRE_DAYS:-0}
+      
+      # 数据库配置
+      - CLEAR_DATABASE=${CLEAR_DATABASE:-false}
+      
+      # 调试配置
+      - DEBUG=${DEBUG:-false}
+      - USE_CACHE=${USE_CACHE:-false}
+      - CONFIRM_UPDATE=${CONFIRM_UPDATE:-true}
+      
+      # 应用配置
       - HOST=0.0.0.0
       - PORT=5000
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
+      
       # Gunicorn配置
       - WORKERS=${WORKERS:-4}
       - TIMEOUT=${TIMEOUT:-120}
       - MAX_REQUESTS=${MAX_REQUESTS:-1000}
-      # 日志配置
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      # 数据库配置
-      - CLEAR_DATABASE=${CLEAR_DATABASE:-false}
-      # 题库配置
-      - QUESTIONS_PER_PAGE=${QUESTIONS_PER_PAGE:-50}
-      - AUTO_NEXT_DELAY=${AUTO_NEXT_DELAY:-2}
-      # 缓存配置
-      - CACHE_ENABLED=${CACHE_ENABLED:-true}
-      - CACHE_EXPIRE_DAYS=${CACHE_EXPIRE_DAYS:-0}
+    
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./config.yml:/app/config.yml:ro
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s 

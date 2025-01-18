@@ -32,96 +32,81 @@ class Config:
         app.config['CACHE_DIR'] = self.CACHE_DIR
         app.config['LOG_DIR'] = self.LOG_DIR
 
+    def _get_env_value(self, key, default=None, config_value=None):
+        """从环境变量获取配置值，如果不存在则使用配置文件值或默认值"""
+        return os.getenv(key, config_value if config_value is not None else default)
+
     def _load_config(self):
         """加载配置文件"""
         with open(self.CONFIG_FILE, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
 
         # 基础配置
-        self.SECRET_KEY = config['base']['secret_key']
+        base_config = config.get('base', {})
+        self.SECRET_KEY = self._get_env_value('SECRET_KEY', 'dev-key', base_config.get('secret_key'))
 
         # 用户配置
         users_config = config.get('users', {})
-        self.SUPERADMIN_USERNAME = users_config.get('superadmin', 'yangao')
-
+        self.SUPERADMIN_USERNAME = self._get_env_value('SUPERADMIN_USERNAME', 'admin', users_config.get('superadmin'))
         # 日志配置
         logging_config = config.get('logging', {})
-        self.LOG_LEVEL = logging_config.get('level', 'INFO')
-        self.LOG_FORMAT = logging_config.get('format', '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        self.LOG_DIR = os.path.join(self.BASE_DIR, logging_config.get('directory', 'logs'))
-        self.LOG_FILE = os.path.join(self.LOG_DIR, logging_config.get('file', 'app.log'))
+        self.LOG_LEVEL = self._get_env_value('LOG_LEVEL', 'INFO', logging_config.get('level'))
+        self.LOG_FORMAT = self._get_env_value('LOG_FORMAT', 
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s', 
+            logging_config.get('format'))
+        self.LOG_DIR = os.path.join(
+            self.BASE_DIR, 
+            self._get_env_value('LOG_DIR', 'logs', logging_config.get('directory')))
+        self.LOG_FILE = os.path.join(
+            self.LOG_DIR, 
+            self._get_env_value('LOG_FILE', 'app.log', logging_config.get('file')))
 
         # 爬虫配置
-        scraper_config = config['scraper']
-        self.SCRAPER_BASE_URL = scraper_config['base_url']
-        self.SCRAPER_HEADERS = scraper_config['headers']
-        self.SCRAPER_REQUEST_TIMEOUT = scraper_config.get('request_timeout', 10)
-        self.SCRAPER_DELAY = scraper_config.get('delay', 1)
-        self.SCRAPER_QUESTION_TYPE = scraper_config.get('question_type', 'A')
+        scraper_config = config.get('scraper', {})
+        self.SCRAPER_BASE_URL = self._get_env_value('SCRAPER_BASE_URL', 
+            "https://www.cqid.cn/all/", 
+            scraper_config.get('base_url'))
+        self.SCRAPER_HEADERS = scraper_config.get('headers', {})
+        self.SCRAPER_REQUEST_TIMEOUT = int(self._get_env_value('SCRAPER_REQUEST_TIMEOUT', 
+            '10', 
+            str(scraper_config.get('request_timeout'))))
+        self.SCRAPER_DELAY = int(self._get_env_value('SCRAPER_DELAY', 
+            '2', 
+            str(scraper_config.get('delay'))))
+        self.SCRAPER_QUESTION_TYPE = self._get_env_value('SCRAPER_QUESTION_TYPE', 
+            'A', 
+            scraper_config.get('question_type'))
 
         # 题库配置
-        questions_config = config['questions']
-        self.QUESTIONS_PER_PAGE = questions_config['per_page']
-        self.AUTO_NEXT_DELAY = questions_config['auto_next_delay']
+        questions_config = config.get('questions', {})
+        self.QUESTIONS_PER_PAGE = int(self._get_env_value('QUESTIONS_PER_PAGE', 
+            '50', 
+            str(questions_config.get('per_page'))))
+        self.AUTO_NEXT_DELAY = int(self._get_env_value('AUTO_NEXT_DELAY', 
+            '2', 
+            str(questions_config.get('auto_next_delay'))))
 
         # 缓存配置
-        cache_config = config['cache']
-        self.CACHE_ENABLED = cache_config['enabled']
-        self.CACHE_EXPIRE_DAYS = cache_config['expire_days']
+        cache_config = config.get('cache', {})
+        self.CACHE_ENABLED = self._get_env_value('CACHE_ENABLED', 'true', 
+            str(cache_config.get('enabled'))).lower() == 'true'
+        self.CACHE_EXPIRE_DAYS = int(self._get_env_value('CACHE_EXPIRE_DAYS', 
+            '0', 
+            str(cache_config.get('expire_days'))))
 
         # 数据库配置
         database_config = config.get('database', {})
-        self.CLEAR_DATABASE = database_config.get('clear_database', False)
+        self.CLEAR_DATABASE = self._get_env_value('CLEAR_DATABASE', 'false', 
+            str(database_config.get('clear_database'))).lower() == 'true'
 
         # 环境配置
-        env = os.getenv('ENV', 'development')
-        env_config = config['environments'].get(env, {})
-        self.DEBUG = env_config.get('debug', True)
-        self.USE_CACHE = env_config.get('use_cache', True)
-        self.CONFIRM_UPDATE = env_config.get('confirm_update', False)
-        self.CLEAR_DATABASE = env_config.get('clear_database', self.CLEAR_DATABASE)
+        env = self._get_env_value('ENV', 'development')
+        env_config = config.get('environments', {}).get(env, {})
+        self.DEBUG = self._get_env_value('DEBUG', 'true', 
+            str(env_config.get('debug'))).lower() == 'true'
+        self.USE_CACHE = self._get_env_value('USE_CACHE', 'true', 
+            str(env_config.get('use_cache'))).lower() == 'true'
+        self.CONFIRM_UPDATE = self._get_env_value('CONFIRM_UPDATE', 'false', 
+            str(env_config.get('confirm_update'))).lower() == 'true'
 
-class ProductionConfig(Config):
-    def __init__(self):
-        super().__init__()
-        env = 'production'
-        with open(self.CONFIG_FILE, 'r', encoding='utf-8') as f:
-            config = yaml.safe_load(f)
-        env_config = config['environments'][env]
-        
-        self.DEBUG = env_config['debug']
-        self.CONFIRM_UPDATE = env_config['confirm_update']
-        # 从环境变量获取密钥
-        self.SECRET_KEY = os.getenv('SECRET_KEY', env_config['secret_key'])
-
-class DevelopmentConfig(Config):
-    def __init__(self):
-        super().__init__()
-        env = 'development'
-        with open(self.CONFIG_FILE, 'r', encoding='utf-8') as f:
-            config = yaml.safe_load(f)
-        env_config = config['environments'][env]
-        
-        self.DEBUG = env_config['debug']
-        self.CONFIRM_UPDATE = env_config['confirm_update']
-
-class TestingConfig(Config):
-    def __init__(self):
-        super().__init__()
-        env = 'testing'
-        with open(self.CONFIG_FILE, 'r', encoding='utf-8') as f:
-            config = yaml.safe_load(f)
-        env_config = config['environments'][env]
-        
-        self.DEBUG = False
-        self.TESTING = True
-        self.USE_CACHE = env_config.get('use_cache', False)
-        self.DATABASE_FILE = os.path.join(self.BASE_DIR, env_config.get('database', 'test_questions.db'))
-        self.CLEAR_DATABASE = env_config.get('clear_database', True)
-
-config = {
-    'development': DevelopmentConfig(),
-    'production': ProductionConfig(),
-    'testing': TestingConfig(),
-    'default': DevelopmentConfig()
-} 
+config = Config()

@@ -1,10 +1,6 @@
 # 基础配置
 base:
-  secret_key: 'change-this-to-your-secret-key'  # ⚠️ 必须修改：使用随机字符串
-
-# 用户配置
-users:
-  superadmin: 'change-this-username'  # ⚠️ 必须修改：设置超级管理员用户名
+  secret_key: 'your-secret-key'
 
 # 日志配置
 logging:
@@ -24,18 +20,18 @@ scraper:
     Accept-Encoding: "gzip, deflate, br"
     Connection: "keep-alive"
     Upgrade-Insecure-Requests: "1"
-  request_timeout: 10  # 请求超时时间（秒）
-  delay: 2  # 请求间隔（秒）
+  request_timeout: 10
+  delay: 2
 
 # 题库配置
 questions:
-  per_page: 50  # 每页显示题目数
+  per_page: 50
   auto_next_delay: 2  # 答对后自动跳转延迟（秒）
 
 # 缓存配置
 cache:
-  enabled: true  # 是否启用缓存
-  expire_days: 0  # 缓存过期时间：0或-1表示永不过期，正数表示过期天数
+  enabled: true
+  expire_days: 0  # 0或-1表示永不过期，正数表示过期天数
 
 # 数据库配置
 database:
@@ -43,24 +39,15 @@ database:
 
 # 环境特定配置
 environments:
-  # 开发环境配置
   development:
-    debug: true  # 是否开启调试模式
-    use_cache: true  # 是否使用缓存
-    confirm_update: false  # 是否确认更新
-    clear_database: true  # 是否清空数据库
+    debug: true
+    use_cache: true
+    confirm_update: false
+    clear_database: true  # 开发环境默认清空数据
   
-  # 生产环境配置
   production:
     debug: false
     use_cache: false
     confirm_update: true
-    secret_key: ${SECRET_KEY:-change-this-production-secret-key}  # ⚠️ 必须修改：使用环境变量或安全的密钥
+    secret_key: ${SECRET_KEY:-production-secret-key}
     clear_database: false  # 生产环境默认不清空数据
-  
-  # 测试环境配置
-  testing:
-    testing: true
-    use_cache: false
-    database: test_questions.db
-    clear_database: true  # 测试环境默认清空数据 
