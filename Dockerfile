@@ -18,8 +18,13 @@ RUN pip install -i https://mirror.nju.edu.cn/pypi/web/simple --no-cache-dir -r r
 
 COPY . .
 
-# 创建非 root 用户
-RUN useradd -m appuser && chown -R appuser:appuser /app
+# 创建必要的目录
+RUN mkdir -p /app/data/cache /app/logs \
+    && useradd -m appuser \
+    && chown -R appuser:appuser /app \
+    && chmod -R 755 /app/data /app/logs
+
+# 切换到非root用户
 USER appuser
 
 # 暴露端口
