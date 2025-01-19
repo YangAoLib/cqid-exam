@@ -32,6 +32,7 @@
                      data-answer-index="{{ loop.index0 }}"
                      data-current-number="{{ current_number }}"
                      data-is-practice="{{ 'true' if is_practice_mode else 'false' }}"
+                     data-correct-index="{{ question.answer_index }}"
                      onclick="submitAnswer(this)">
                     <label class="w-100 p-2">
                         {{ loop.index }}. {{ option }}
@@ -130,6 +131,7 @@ function submitAnswer(element) {
     const answerIndex = parseInt(element.dataset.answerIndex);
     const currentNumber = parseInt(element.dataset.currentNumber);
     const isPractice = element.dataset.isPractice === 'true';
+    const correctIndex = parseInt(element.dataset.correctIndex);
 
     // 禁用所有选项
     const options = document.querySelectorAll('.option');
@@ -147,7 +149,8 @@ function submitAnswer(element) {
             question_id: questionId,
             answer_index: answerIndex,
             current_number: currentNumber,
-            is_practice_mode: isPractice
+            is_practice_mode: isPractice,
+            correct_index: correctIndex
         })
     })
     .then(response => response.json())

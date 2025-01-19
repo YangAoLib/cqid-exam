@@ -178,12 +178,13 @@ def submit_answer():
     answer_index = data.get('answer_index')
     current_number = data.get('current_number', 1)
     is_practice_mode = data.get('is_practice_mode', False)
+    correct_index = data.get('correct_index')
     
     question = db.get_question_by_id(question_id)
     if not question:
         return jsonify({'status': 'error', 'message': '题目不存在'})
     
-    is_correct = answer_index == question['answer_index']
+    is_correct = answer_index == correct_index
     
     # 获取下一题的题号
     if is_practice_mode:
