@@ -341,9 +341,10 @@ def login():
                         db.record_wrong_answer(user['id'], int(question_id))
                 session.pop('wrong_answers')  # 清除临时记录
             
-            # 如果有进度记录，更新到数据库
+            # 如果有临时进度记录，更新到数据库
             if 'current_number' in session:
                 db.update_user_progress(user['id'], session['current_number'])
+                session.pop('current_number')  # 清除临时进度
             
             flash(f'欢迎, {username}!', 'success')
             return redirect(url_for('index'))
@@ -351,16 +352,13 @@ def login():
 
 @app.route('/logout')
 def logout():
-    # 保留进度和错题记录
-    current_number = session.get('current_number')
+    # 只保留错题记录
     wrong_answers = session.get('wrong_answers')
     
     # 清除登录信息
     session.clear()
     
-    # 恢复进度和错题记录
-    if current_number:
-        session['current_number'] = current_number
+    # 恢复错题记录
     if wrong_answers:
         session['wrong_answers'] = wrong_answers
         

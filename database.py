@@ -343,6 +343,15 @@ class Database:
             cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
             user = cursor.fetchone()
             if user:
+                # 确保超级管理员也有进度记录
+                cursor.execute('SELECT * FROM user_progress WHERE user_id = ?', (user[0],))
+                if not cursor.fetchone():
+                    cursor.execute('''
+                        INSERT INTO user_progress (user_id, current_question)
+                        VALUES (?, 1)
+                    ''', (user[0],))
+                    conn.commit()
+                
                 return {
                     'id': user[0],
                     'username': user[1],
@@ -362,6 +371,15 @@ class Database:
         
         cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
         user = cursor.fetchone()
+        
+        # 初始化用户进度
+        cursor.execute('SELECT * FROM user_progress WHERE user_id = ?', (user[0],))
+        if not cursor.fetchone():
+            cursor.execute('''
+                INSERT INTO user_progress (user_id, current_question)
+                VALUES (?, 1)
+            ''', (user[0],))
+            conn.commit()
         
         return {
             'id': user[0],
