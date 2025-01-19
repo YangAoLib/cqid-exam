@@ -11,18 +11,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TIMEOUT=120 \
     MAX_REQUESTS=1000
 
+# 创建必要的目录和用户
+RUN mkdir -p /app/data/cache /app/logs \
+    && useradd -m appuser \
+    && chown -R appuser:appuser /app \
+    && chmod -R 777 /app/data /app/logs
+
 # 复制项目文件
 COPY requirements.txt .
 RUN pip install -i https://mirror.nju.edu.cn/pypi/web/simple --no-cache-dir -r requirements.txt \
     && pip install -i https://mirror.nju.edu.cn/pypi/web/simple --no-cache-dir gunicorn
 
 COPY . .
-
-# 创建必要的目录
-RUN mkdir -p /app/data/cache /app/logs \
-    && useradd -m appuser \
-    && chown -R appuser:appuser /app \
-    && chmod -R 755 /app/data /app/logs
+RUN chown -R appuser:appuser /app
 
 # 切换到非root用户
 USER appuser
