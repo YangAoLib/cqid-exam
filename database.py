@@ -391,3 +391,113 @@ class Database:
         cursor.execute('SELECT role FROM users WHERE id = ?', (user_id,))
         result = cursor.fetchone()
         return result[0] if result else None 
+
+    def remove_wrong_question(self, user_id, question_id):
+        """从错题记录中移除一道题目"""
+        conn = self.get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            DELETE FROM wrong_answers 
+            WHERE user_id = ? AND question_id = ?
+        ''', (user_id, question_id))
+        
+        conn.commit()
+    
+    def get_wrong_questions_count(self, user_id):
+        """获取用户的错题数量"""
+        conn = self.get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT COUNT(*) 
+            FROM wrong_answers 
+            WHERE user_id = ?
+        ''', (user_id,))
+        
+        return cursor.fetchone()[0]
+    
+    def get_next_wrong_question(self, user_id, current_number):
+        """获取下一道错题"""
+        conn = self.get_db()
+        cursor = conn.cursor()
+        
+        # 先尝试获取比当前题号大的错题
+        cursor.execute('''
+            SELECT 
+                q.id,
+                q.number,
+                q.title,
+                q.options,
+                q.answer,
+                w.wrong_count
+            FROM questions q 
+            JOIN wrong_answers w ON q.id = w.question_id 
+            WHERE w.user_id = ? AND q.number > ?
+            ORDER BY q.number
+            LIMIT 1
+        ''', (user_id, current_number))
+        
+        question = cursor.fetchone()
+        
+        if not question:
+            # 如果没有更大题号的错题，则从头开始
+            cursor.execute('''
+                SELECT 
+                    q.id,
+                    q.number,
+                    q.title,
+                    q.options,
+                    q.answer,
+                    w.wrong_count
+                FROM questions q 
+                JOIN wrong_answers w ON q.id = w.question_id 
+                WHERE w.user_id = ?
+                ORDER BY q.number
+                LIMIT 1
+            ''', (user_id,))
+            question = cursor.fetchone()
+        
+        if question:
+            return {
+                'id': question[0],
+                'number': question[1],
+                'title': question[2],
+                'options': eval(question[3]),
+                'answer': question[4],
+                'wrong_count': question[5]
+            }
+        return None 
+
+    def get_first_wrong_question(self, user_id):
+        """获取用户的第一道错题"""
+        conn = self.get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT 
+                q.id,
+                q.number,
+                q.title,
+                q.options,
+                q.answer,
+                w.wrong_count
+            FROM questions q 
+            JOIN wrong_answers w ON q.id = w.question_id 
+            WHERE w.user_id = ?
+            ORDER BY q.number
+            LIMIT 1
+        ''', (user_id,))
+        
+        question = cursor.fetchone()
+        
+        if question:
+            return {
+                'id': question[0],
+                'number': question[1],
+                'title': question[2],
+                'options': eval(question[3]),
+                'answer': question[4],
+                'wrong_count': question[5]
+            }
+        return None 

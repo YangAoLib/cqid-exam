@@ -6,6 +6,7 @@ from quiz import QuizSystem
 from review import ReviewSystem
 from config import config
 from functools import wraps
+import random
 
 # 根据环境变量选择配置
 config_instance = config
@@ -138,12 +139,45 @@ def quiz():
         flash('系统错误，请重试')
         return redirect(url_for('index'))
 
+@app.route('/practice_wrong')
+def practice_wrong():
+    if 'user_id' not in session:
+        flash('请先登录后再练习错题', 'warning')
+        return redirect(url_for('login'))
+    
+    # 获取特定题目ID
+    question_id = request.args.get('question_id')
+    
+    if question_id:
+        # 练习特定错题
+        question = db.get_question_by_id(question_id)
+        if not question:
+            flash('题目不存在', 'danger')
+            return redirect(url_for('review'))
+        current_number = question['number']
+    else:
+        # 获取所有错题
+        wrong_questions = db.get_wrong_questions(session['user_id'])
+        if not wrong_questions:
+            flash('没有需要练习的错题', 'info')
+            return redirect(url_for('review'))
+        
+        # 随机选择一道错题
+        question = random.choice(wrong_questions)
+        current_number = question['number']
+    
+    return render_template('quiz.html', 
+                         question=question,
+                         current_number=current_number,
+                         is_practice_mode=True)
+
 @app.route('/submit_answer', methods=['POST'])
 def submit_answer():
     data = request.get_json()
     question_id = data.get('question_id')
     answer_index = data.get('answer_index')
-    current_number = data.get('current_number', 1)  # 获取当前题号，默认为1
+    current_number = data.get('current_number', 1)
+    is_practice_mode = data.get('is_practice_mode', False)
     
     question = db.get_question_by_id(question_id)
     if not question:
@@ -152,7 +186,31 @@ def submit_answer():
     is_correct = question['options'][answer_index] == question['answer']
     
     # 获取下一题的题号
-    next_number = current_number + 1 if current_number else 2
+    if is_practice_mode:
+        # 在练习模式下，如果答对了就从错题记录中移除
+        if is_correct and 'user_id' in session:
+            db.remove_wrong_question(session['user_id'], question_id)
+            # 获取剩余错题数量
+            remaining_count = db.get_wrong_questions_count(session['user_id'])
+            if remaining_count == 0:
+                return jsonify({
+                    'status': 'success',
+                    'correct': is_correct,
+                    'answer': question['answer'],
+                    'message': '恭喜！你已完成所有错题练习',
+                    'redirect_url': url_for('index')  # 修改为返回首页
+                })
+        # 获取下一道错题
+        next_question = db.get_next_wrong_question(session['user_id'], current_number)
+        next_number = next_question['number'] if next_question else None
+        
+        # 如果没有下一题（但还有未答对的题目），返回到第一道错题
+        if next_number is None and db.get_wrong_questions_count(session['user_id']) > 0:
+            first_wrong = db.get_first_wrong_question(session['user_id'])
+            if first_wrong:
+                next_number = first_wrong['number']
+    else:
+        next_number = current_number + 1 if current_number else 2
     
     if not is_correct:
         if 'user_id' in session:
@@ -167,17 +225,18 @@ def submit_answer():
             }
             session['wrong_answers'] = wrong_answers
     
-    # 更新进度
-    if 'user_id' in session:
-        db.update_user_progress(session['user_id'], next_number)
-    session['current_number'] = next_number
+    # 更新进度（仅在非练习模式下）
+    if not is_practice_mode:
+        if 'user_id' in session:
+            db.update_user_progress(session['user_id'], next_number)
+        session['current_number'] = next_number
     
     return jsonify({
         'status': 'success',
         'correct': is_correct,
         'answer': question['answer'],
         'next_number': next_number,
-        'auto_next_delay': config_instance.config_data['questions']['auto_next_delay']
+        'auto_next_delay': config_instance.AUTO_NEXT_DELAY
     })
 
 @app.route('/review')
