@@ -9,12 +9,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     FLASK_ENV=production \
     WORKERS=4 \
     TIMEOUT=120 \
-    MAX_REQUESTS=1000
+    MAX_REQUESTS=1000 \
+    USER_UID=1000 \
+    USER_GID=1000
 
 # 创建必要的目录和用户
 RUN mkdir -p /app/data/cache /app/logs \
-    && useradd -m appuser \
-    && chown -R appuser:appuser /app \
+    && groupadd -g ${USER_GID} appgroup \
+    && useradd -u ${USER_UID} -g appgroup -m appuser \
+    && chown -R appuser:appgroup /app \
     && chmod -R 777 /app/data /app/logs
 
 # 复制项目文件
@@ -23,7 +26,7 @@ RUN pip install -i https://mirror.nju.edu.cn/pypi/web/simple --no-cache-dir -r r
     && pip install -i https://mirror.nju.edu.cn/pypi/web/simple --no-cache-dir gunicorn
 
 COPY . .
-RUN chown -R appuser:appuser /app
+RUN chown -R appuser:appgroup /app
 
 # 切换到非root用户
 USER appuser
