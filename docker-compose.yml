@@ -59,13 +59,6 @@ services:
     # 使用当前用户的 UID 和 GID，如果没有设置则默认使用 1000:1000
     user: "${UID:-1000}:${GID:-1000}"
     volumes:
-      - type: bind
-        source: ./data
-        target: /app/data
-      - type: bind
-        source: ./logs
-        target: /app/logs
-      - type: bind
-        source: ./config.yml
-        target: /app/config.yml
-        read_only: true
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config.yml:/app/config.yml:ro
