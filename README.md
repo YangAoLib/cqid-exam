@@ -22,7 +22,16 @@ git clone git@github.com:YangAoLib/cqid-exam.git
 cd cqid-exam
 ```
 
-2. 配置环境变量
+2. 创建必要的目录和文件
+```bash
+# 创建数据和日志目录
+mkdir -p data/cache logs
+
+# 复制配置文件
+cp config.example.yml config.yml
+```
+
+3. 配置环境变量
 ```bash
 # 生成随机密钥
 python -c "import secrets; print(secrets.token_hex(32))"
@@ -31,13 +40,13 @@ python -c "import secrets; print(secrets.token_hex(32))"
 # 根据需要修改其他配置
 ```
 
-3. 使用 Docker Compose 启动服务
+4. 使用 Docker Compose 启动服务
 ```bash
 # 构建并启动
-docker-compose up -d
+docker compose up -d
 
 # 查看日志
-docker-compose logs -f web
+docker compose logs -f web
 ```
 
 ### 方式二：传统部署
@@ -180,7 +189,11 @@ cqid-exam/
 - `templates/`: HTML 模板文件
 - `static/`: CSS、JavaScript 等静态文件
 - `data/`: 数据库和缓存文件
-- `logs/`: 日志文件
+  - `data/cache/`: 题库缓存目录（需要手动创建）
+  - `data/questions.db`: SQLite 数据库文件（自动创建）
+- `logs/`: 日志文件目录（需要手动创建）
+  - `logs/app.log`: 应用程序日志文件
+- `config.yml`: 应用配置文件（从 config.example.yml 复制）
 
 ### 主要模块
 - `main.py`: Flask 应用主程序
