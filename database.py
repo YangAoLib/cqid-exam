@@ -4,6 +4,7 @@ import threading
 from flask import g
 import logging
 import sys
+import random
 
 class Database:
     def __init__(self, config):
@@ -272,12 +273,27 @@ class Database:
             self.logger.debug(f"查询题号 {number} 结果: {question}")
             
             if question:
+                # 获取选项和答案
+                options = eval(question[3])
+                answer = question[4]
+                
+                # 记录答案的原始索引
+                answer_index = options.index(answer)
+                
+                # 打乱选项顺序
+                shuffled_options = options.copy()
+                random.shuffle(shuffled_options)
+                
+                # 获取答案在打乱后的新索引
+                new_answer_index = shuffled_options.index(answer)
+                
                 return {
                     'id': question[0],
                     'number': question[1],
                     'title': question[2],
-                    'options': eval(question[3]),
-                    'answer': question[4]
+                    'options': shuffled_options,
+                    'answer': answer,
+                    'answer_index': new_answer_index
                 }
             return None
             
@@ -293,14 +309,29 @@ class Database:
         question = cursor.fetchone()
         
         if question:
+            # 获取选项和答案
+            options = eval(question[3])
+            answer = question[4]
+            
+            # 记录答案的原始索引
+            answer_index = options.index(answer)
+            
+            # 打乱选项顺序
+            shuffled_options = options.copy()
+            random.shuffle(shuffled_options)
+            
+            # 获取答案在打乱后的新索引
+            new_answer_index = shuffled_options.index(answer)
+            
             return {
                 'id': question[0],
                 'number': question[1],
                 'title': question[2],
-                'options': eval(question[3]),
-                'answer': question[4]
+                'options': shuffled_options,
+                'answer': answer,
+                'answer_index': new_answer_index
             }
-        return None 
+        return None
 
     def get_or_create_user(self, username):
         """获取或创建用户"""

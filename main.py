@@ -183,7 +183,7 @@ def submit_answer():
     if not question:
         return jsonify({'status': 'error', 'message': '题目不存在'})
     
-    is_correct = question['options'][answer_index] == question['answer']
+    is_correct = answer_index == question['answer_index']
     
     # 获取下一题的题号
     if is_practice_mode:
