@@ -2,18 +2,26 @@
 
 {% block content %}
 <div class="quiz-container">
-    <h2 class="mb-4">答题练习</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{% if is_practice_mode %}错题练习{% else %}答题练习{% endif %}</h2>
+        {% if not is_practice_mode %}
+        <button class="btn btn-outline-secondary btn-sm" 
+                data-bs-toggle="modal" 
+                data-bs-target="#resetProgressModal">
+            重置进度
+        </button>
+        {% else %}
+        <a href="{{ url_for('review') }}" class="btn btn-outline-secondary btn-sm">
+            返回错题列表
+        </a>
+        {% endif %}
+    </div>
     
     {% if question %}
     <div class="card">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="card-title mb-0">第 {{ current_number }} 题</h5>
-                <button class="btn btn-outline-secondary btn-sm" 
-                        data-bs-toggle="modal" 
-                        data-bs-target="#resetProgressModal">
-                    重置进度
-                </button>
             </div>
             <p class="card-text">{{ question.title }}</p>
             
@@ -23,6 +31,7 @@
                      data-question-id="{{ question.id }}"
                      data-answer-index="{{ loop.index0 }}"
                      data-current-number="{{ current_number }}"
+                     data-is-practice="{{ 'true' if is_practice_mode else 'false' }}"
                      onclick="submitAnswer(this)">
                     <label class="w-100 p-2">
                         {{ loop.index }}. {{ option }}
@@ -53,12 +62,18 @@
     </div>
     {% else %}
     <div class="alert alert-info">
+        {% if is_practice_mode %}
+        没有需要练习的错题了。
+        <a href="{{ url_for('review') }}" class="btn btn-primary btn-sm">返回错题列表</a>
+        {% else %}
         当前没有可用的题目，请先更新题库。
-        <a href="/update" class="btn btn-primary">更新题库</a>
+        <a href="{{ url_for('update') }}" class="btn btn-primary">更新题库</a>
+        {% endif %}
     </div>
     {% endif %}
 </div>
 
+{% if not is_practice_mode %}
 <div class="modal fade" id="resetProgressModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -79,18 +94,31 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <script>
 let autoNextTimer = null;
 let isSubmitting = false;  // 防止重复提交
 
 function goToNext() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const nextNumber = urlParams.get('next_number');
-    if (nextNumber) {
-        window.location.href = `/quiz?page=${nextNumber}`;
+    if (window.location.href.includes('practice_wrong')) {
+        // 练习模式下的跳转
+        const urlParams = new URLSearchParams(window.location.search);
+        const nextNumber = urlParams.get('next_number');
+        if (nextNumber) {
+            window.location.href = `/practice_wrong?page=${nextNumber}`;
+        } else {
+            window.location.href = '/practice_wrong';
+        }
     } else {
-        window.location.href = '/quiz';
+        // 普通答题模式下的跳转
+        const urlParams = new URLSearchParams(window.location.search);
+        const nextNumber = urlParams.get('next_number');
+        if (nextNumber) {
+            window.location.href = `/quiz?page=${nextNumber}`;
+        } else {
+            window.location.href = '/quiz';
+        }
     }
 }
 
@@ -101,6 +129,7 @@ function submitAnswer(element) {
     const questionId = element.dataset.questionId;
     const answerIndex = parseInt(element.dataset.answerIndex);
     const currentNumber = parseInt(element.dataset.currentNumber);
+    const isPractice = element.dataset.isPractice === 'true';
 
     // 禁用所有选项
     const options = document.querySelectorAll('.option');
@@ -117,7 +146,8 @@ function submitAnswer(element) {
         body: JSON.stringify({
             question_id: questionId,
             answer_index: answerIndex,
-            current_number: currentNumber
+            current_number: currentNumber,
+            is_practice_mode: isPractice
         })
     })
     .then(response => response.json())
@@ -128,6 +158,17 @@ function submitAnswer(element) {
         const correctAnswer = document.getElementById('correct-answer');
         
         resultContainer.style.display = 'block';
+        
+        if (data.redirect_url) {
+            // 如果需要重定向（比如完成所有错题练习）
+            setTimeout(() => {
+                window.location.href = data.redirect_url;
+            }, 2000);
+            correctAlert.style.display = 'block';
+            wrongAlert.style.display = 'none';
+            document.getElementById('auto-next-countdown').textContent = data.message;
+            return;
+        }
         
         // 设置下一题的URL参数
         const urlParams = new URLSearchParams(window.location.search);

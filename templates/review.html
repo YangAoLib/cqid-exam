@@ -2,7 +2,14 @@
 
 {% block content %}
 <div class="container">
-    <h2 class="mb-4">错题复习</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>错题复习</h2>
+        {% if wrong_questions %}
+        <a href="{{ url_for('practice_wrong') }}" class="btn btn-primary">
+            <i class="fas fa-redo"></i> 练习错题
+        </a>
+        {% endif %}
+    </div>
     
     {% if wrong_questions %}
         <div class="table-responsive">
@@ -13,6 +20,7 @@
                         <th>题目</th>
                         <th>答案</th>
                         <th>错误次数</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -31,6 +39,11 @@
                         </td>
                         <td class="text-success">{{ question.answer }}</td>
                         <td class="text-danger">{{ question.wrong_count }}</td>
+                        <td>
+                            <a href="{{ url_for('practice_wrong', question_id=question.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-redo"></i> 练习此题
+                            </a>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
