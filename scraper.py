@@ -39,6 +39,47 @@ class QuestionScraper:
         cache_key = f"type_{self.question_type}_page_{page}"
         return os.path.join(self.config.CACHE_DIR, f"{cache_key}.json")
 
+    def _get_cache_info(self):
+        """从缓存目录获取题目总数信息"""
+        if not self.config.USE_CACHE or not os.path.exists(self.config.CACHE_DIR):
+            return None, None
+
+        try:
+            # 获取所有缓存文件
+            cache_files = [f for f in os.listdir(self.config.CACHE_DIR) 
+                         if f.startswith(f"type_{self.question_type}_page_") and f.endswith('.json')]
+            
+            if not cache_files:
+                return None, None
+
+            # 获取最大题目编号和每页题目数
+            max_number = 0
+            questions_per_page = 0
+            
+            for cache_file in cache_files:
+                file_path = os.path.join(self.config.CACHE_DIR, cache_file)
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        questions = json.load(f)
+                        if questions and len(questions) > 0:
+                            questions_per_page = max(questions_per_page, len(questions))
+                            for q in questions:
+                                if 'number' in q:
+                                    max_number = max(max_number, q['number'])
+                except Exception as e:
+                    self.logger.error(f"读取缓存文件 {cache_file} 失败: {str(e)}")
+                    continue
+
+            if max_number > 0 and questions_per_page > 0:
+                total_questions = max_number
+                self.logger.info(f"从缓存目录获取信息：最大题号={max_number}, 每页题数={questions_per_page}")
+                return total_questions, questions_per_page
+
+        except Exception as e:
+            self.logger.error(f"获取缓存信息失败: {str(e)}")
+        
+        return None, None
+
     def _load_cache(self, page):
         """从缓存加载数据"""
         if not self.config.USE_CACHE:
@@ -99,6 +140,13 @@ class QuestionScraper:
 
     def get_questions(self, page=1):
         """获取指定页面的题目"""
+        # 如果还没有题目信息，尝试从缓存目录获取
+        if (self.total_questions is None or self.questions_per_page is None) and self.config.USE_CACHE:
+            total_questions, questions_per_page = self._get_cache_info()
+            if total_questions and questions_per_page:
+                self.total_questions = total_questions
+                self.questions_per_page = questions_per_page
+
         # 尝试从缓存加载
         cached_data = self._load_cache(page)
         if cached_data:

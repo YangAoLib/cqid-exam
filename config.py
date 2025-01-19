@@ -2,7 +2,6 @@ import os
 import yaml
 from pathlib import Path
 import logging
-import secrets
 
 class Config:
     def __init__(self):
@@ -32,43 +31,26 @@ class Config:
         app.config['DATABASE_FILE'] = self.DATABASE_FILE
         app.config['CACHE_DIR'] = self.CACHE_DIR
         app.config['LOG_DIR'] = self.LOG_DIR
-        app.config['QUESTIONS_PER_PAGE'] = self.QUESTIONS_PER_PAGE
 
-    def _get_env_value(self, key, default=None, config_value=None, required=False):
+    def _get_env_value(self, key, default=None, config_value=None):
         """从环境变量获取配置值，如果不存在则使用配置文件值或默认值"""
-        value = os.getenv(key)
-        if value is not None:
-            return value
-        if config_value is not None:
-            return config_value
-        if required and default is None:
-            raise ValueError(f"必须设置环境变量 {key} 或在配置文件中提供相应的值")
-        return default
+        return os.getenv(key, config_value if config_value is not None else default)
 
     def _load_config(self):
         """加载配置文件"""
-        try:
-            with open(self.CONFIG_FILE, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-        except FileNotFoundError:
-            config = {}
-            logging.warning(f"配置文件 {self.CONFIG_FILE} 不存在，使用默认配置")
+        with open(self.CONFIG_FILE, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
 
         # 基础配置
         base_config = config.get('base', {})
-        default_secret_key = secrets.token_hex(32)
-        self.SECRET_KEY = self._get_env_value('SECRET_KEY', default_secret_key, 
-            base_config.get('secret_key'), required=True)
+        self.SECRET_KEY = self._get_env_value('SECRET_KEY', 'dev-key', base_config.get('secret_key'))
 
         # 用户配置
         users_config = config.get('users', {})
-        self.SUPERADMIN_USERNAME = self._get_env_value('SUPERADMIN_USERNAME', 'admin', 
-            users_config.get('superadmin'), required=True)
-
+        self.SUPERADMIN_USERNAME = self._get_env_value('SUPERADMIN_USERNAME', 'admin', users_config.get('superadmin'))
         # 日志配置
         logging_config = config.get('logging', {})
-        self.LOG_LEVEL = self._get_env_value('LOG_LEVEL', 'INFO', 
-            logging_config.get('level'))
+        self.LOG_LEVEL = self._get_env_value('LOG_LEVEL', 'INFO', logging_config.get('level'))
         self.LOG_FORMAT = self._get_env_value('LOG_FORMAT', 
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s', 
             logging_config.get('format'))
@@ -126,5 +108,8 @@ class Config:
             str(env_config.get('use_cache'))).lower() == 'true'
         self.CONFIRM_UPDATE = self._get_env_value('CONFIRM_UPDATE', 'false', 
             str(env_config.get('confirm_update'))).lower() == 'true'
+        self.CLEAR_DATABASE = self._get_env_value('CLEAR_DATABASE', 'false', 
+            str(env_config.get('clear_database'))).lower() == 'true'
+
 
 config = Config()
