@@ -163,7 +163,7 @@ def practice_wrong():
             return redirect(url_for('review'))
         
         # 随机选择一道错题
-        question = random.choice(wrong_questions)
+        question = db.get_question_by_id(random.choice(wrong_questions)['id'])
         current_number = question['number']
     
     return render_template('quiz.html', 
@@ -184,6 +184,7 @@ def submit_answer():
     if not question:
         return jsonify({'status': 'error', 'message': '题目不存在'})
     
+    # 使用question中的answer_index进行比较，因为它已经考虑了选项打乱后的顺序
     is_correct = answer_index == correct_index
     
     # 获取下一题的题号
