@@ -12,8 +12,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     MAX_REQUESTS=1000
 
 # 创建必要的目录
-RUN mkdir -p /app/data/cache /app/logs \
-    && chmod -R 777 /app/data /app/logs
+RUN mkdir -p /app/data/cache /app/logs
 
 # 复制项目文件
 COPY requirements.txt .
